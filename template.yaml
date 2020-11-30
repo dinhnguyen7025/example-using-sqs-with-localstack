@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  example using sqs with localstack
+
+Globals:
+  Function:
+    Timeout: 30
+Parameters:
+  LocalStackEndPoint:
+    Type: String
+    Default: "http://host.docker.internal:4566"
+  CustomBucket:
+    Type: String
+    Default: "custom-bucket"
+  LambdaBucket:
+    Type: String
+    Default: "lambda-bucket"
+  EsEndpoint:
+    Type: String
+    Default: 'http://es:9200'
+
+Resources:
+  DwhExpTxWriterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: "custom-lambda"
+      Environment:
+        Variables:
+          CUSTOM_BUCKET: !Ref CustomBucket
+          LOCALSTACK_ENDPOINT: !Ref LocalStackEndPoint
+          ES_ENDPOINT: !Ref EsEndpoint
+      CodeUri:
+        Bucket: lambda-bucket
+        Key: custom.zip
+      Handler: bin/custom
+      Runtime: go1.x
+      Tracing: Active # https://docs.aws.amazon.com/lambda/latest/dg/lambda-x-ray.html
+      Policies:
+        - Version: '2012-10-17' # Policy Document
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:*
+              Resource: 'arn:aws:s3:::custom-bucket/*'
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt CustomQueue.Arn
+
+  CustomQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: "example-queue"
+#      FifoQueue: false

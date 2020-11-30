@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+cd "`dirname $0`/../../"
+
+main_app=$1
+dest=$2
+
+echo main_app
+echo dest
+
+export GO111MODULE=on
+export GOOS=linux
+
+go fmt ${main_app}
+go build -o ${dest} ${main_app}
